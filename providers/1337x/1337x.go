@@ -4,108 +4,131 @@ import (
 	"errors"
 	"fmt"
 	"github.com/antchfx/htmlquery"
-	"github.com/demostanis/metatorrent/internal"
+	. "github.com/demostanis/metatorrent/internal/messages"
 	"regexp"
-	"sort"
 	"strconv"
 )
 
 const Name = "1337x"
 const MainUrl = "https://www.1337x.to"
 
-var elementsMissingError = errors.New("Did not find expected elements on the page")
-var elementsInvalidError = errors.New("Found elements on the page, but with wrong values")
-
-func searchPage(query string, page int) (error, []torrents.Torrent) {
-	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search/%s/%d/", MainUrl, query, page))
-	if err != nil {
-		return err, nil
-	}
-
-	fmt.Printf("Processing page %d...\n", page)
-
-	titles, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-1 name\"]/a[2]")
-	seeders, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-2 seeds\"]")
-	leechers, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-3 leeches\"]")
-	sizes, err := htmlquery.QueryAll(doc, "//td[contains(@class, \"coll-4 size\")]/text()")
-
-	var myTorrents []torrents.Torrent
-
-	if len(seeders) != len(titles) || len(leechers) != len(titles) || len(sizes) != len(titles) {
-		return elementsMissingError, nil
-	}
-
-	for i, title := range titles {
-		titleValue := htmlquery.InnerText(title)
-
-		seedersValue, err := strconv.Atoi(htmlquery.InnerText(seeders[i]))
-		if err != nil {
-			return elementsInvalidError, nil
-		}
-		leechersValue, err := strconv.Atoi(htmlquery.InnerText(leechers[i]))
-		if err != nil {
-			return elementsInvalidError, nil
-		}
-		sizeValue := htmlquery.InnerText(sizes[i])
-		if err != nil {
-			return elementsInvalidError, nil
-		}
-
-		myTorrents = append(myTorrents, torrents.Torrent{
-			Title:    titleValue,
-			Seeders:  seedersValue,
-			Leechers: leechersValue,
-			Size:     sizeValue,
-		})
-	}
-
-	return nil, myTorrents
+var provider1337xError = func(category, msg string) error {
+	return errors.New(fmt.Sprintf("[%s/%s] ERROR: %s", Name, category, msg))
 }
 
-func Search(query string) (error, []torrents.Torrent) {
-	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search/%s/1/", MainUrl, query))
+func searchPage(query string, page int, lastPage int, statusChannel chan string, torrentsChannel chan TorrentsMsg) error {
+	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search/%s/%d/", MainUrl, query, page))
 	if err != nil {
-		return err, nil
-	}
-	lastPageElem := htmlquery.FindOne(doc, "//div[@class=\"pagination\"]//li[last()]//@href")
-	if lastPageElem == nil {
-		return elementsMissingError, nil
+		return err
 	}
 
+	status(statusChannel, "[%s] Processing page %d...", Name, page)
+
+	titleElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-1 name\"]/a[2]")
+	linkElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-1 name\"]//a[2]/@href")
+	seedersCountElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-2 seeds\"]")
+	leechersCountElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-3 leeches\"]")
+	sizeElements, err := htmlquery.QueryAll(doc, "//td[contains(@class, \"coll-4 size\")]/text()")
+
+	// Since the elements are in a table, they should always be in identical counts.
+	// In case they're not, we assume there was a parsing error, and bail out.
+	if len(linkElements) != len(titleElements) ||
+		len(seedersCountElements) != len(titleElements) ||
+		len(leechersCountElements) != len(titleElements) ||
+		len(sizeElements) != len(titleElements) {
+		return provider1337xError("parsing", "Torrent entries are malformed.")
+	}
+
+	for i, title := range titleElements {
+		title := htmlquery.InnerText(title)
+		link := htmlquery.SelectAttr(linkElements[i], "href")
+
+		seeders, err := strconv.Atoi(htmlquery.InnerText(seedersCountElements[i]))
+		if err != nil {
+			return provider1337xError("parsing", "Expected seeders to be a number.")
+		}
+		leechers, err := strconv.Atoi(htmlquery.InnerText(leechersCountElements[i]))
+		if err != nil {
+			return provider1337xError("parsing", "Expected leechers to be a number.")
+		}
+		size := htmlquery.InnerText(sizeElements[i])
+		if err != nil {
+			return provider1337xError("parsing", "Torrent size is missing.")
+		}
+
+		last := false
+		if page == lastPage && i == len(titleElements)-1 {
+			last = true
+		}
+		myTorrent := TorrentsMsg{
+			Provider1337xTorrent{
+				title:    title,
+				link:     link,
+				seeders:  seeders,
+				leechers: leechers,
+				size:     size,
+			},
+			last,
+		}
+		go func() {
+			torrentsChannel <- myTorrent
+		}()
+	}
+
+	status(statusChannel, "[%s] Processed page %d...", Name, page)
+
+	return nil
+}
+
+// Finds the number of pages of results for `query`, and scrapes all of them using `searchPage`.
+func Search(query string, statusChannel chan string, torrentsChannel chan TorrentsMsg, errorsChannel chan error) {
+	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search/%s/1/", MainUrl, query))
+	if err != nil {
+		errorsChannel <- err
+		return
+	}
+
+	lastPageElem := htmlquery.FindOne(doc, "//div[@class=\"pagination\"]//li[last()]//@href")
+	if lastPageElem == nil {
+		errorsChannel <- provider1337xError("parsing", "Max page number is missing.")
+		return
+	}
 	href := htmlquery.SelectAttr(lastPageElem, "href")
 	match := regexp.MustCompile("/(\\d+)/").FindString(href)
 	lastPage, err := strconv.Atoi(match[1 : len(match)-1])
 	if err != nil {
-		return err, nil
+		errorsChannel <- err
+		return
 	}
-	fmt.Printf("Found %d pages\n", lastPage)
+	status(statusChannel, "[%s] Found %d pages", Name, lastPage)
 
-	var myTorrents []torrents.Torrent
 	var lastError error
-	done := 0
+	scrapedPages := 0
+
 	for i := 1; i <= lastPage; i++ {
 		go func(i int) {
-			err, torrents := searchPage(query, i)
+			err := searchPage(query, i, lastPage, statusChannel, torrentsChannel)
 			if err != nil {
 				lastError = err
 				return
 			}
-			for _, torrent := range torrents {
-				myTorrents = append(myTorrents, torrent)
-			}
-			done++
+			scrapedPages++
 		}(i)
 	}
 	for {
-		if lastError != nil || done == lastPage {
+		if lastError != nil || scrapedPages == lastPage {
 			break
 		}
 	}
+
 	if lastError != nil {
-		return lastError, nil
+		errorsChannel <- lastError
+		return
 	}
-	sort.Slice(myTorrents, func(i, j int) bool {
-		return myTorrents[i].Seeders > myTorrents[j].Seeders
-	})
-	return nil, myTorrents
+}
+
+func status(statusChannel chan string, message string, rest ...any) {
+	go func() {
+		statusChannel <- fmt.Sprintf(message, rest...)
+	}()
 }
