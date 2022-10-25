@@ -5,7 +5,7 @@ import (
 	. "github.com/demostanis/metatorrent/internal/messages"
 )
 
-func WaitForStatus(statusChannel chan string) tea.Cmd {
+func WaitForStatus(statusChannel chan StatusMsg) tea.Cmd {
 	return func() tea.Msg {
 		return StatusMsg(<-statusChannel)
 	}
@@ -17,7 +17,7 @@ func WaitForTorrents(torrentsChannel chan TorrentsMsg) tea.Cmd {
 	}
 }
 
-func WaitForErrors(errorsChannel chan error) tea.Cmd {
+func WaitForErrors(errorsChannel chan ErrorsMsg) tea.Cmd {
 	return func() tea.Msg {
 		return ErrorsMsg(<-errorsChannel)
 	}

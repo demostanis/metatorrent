@@ -32,11 +32,11 @@ type Model struct {
 	terminalWidth  int
 	terminalHeight int
 
-	statusChannel   chan string
+	statusChannel   chan StatusMsg
 	torrentsChannel chan TorrentsMsg
-	errorsChannel   chan error
+	errorsChannel   chan ErrorsMsg
 
-	totalTorrentCount      int
+	totalTorrentsCount     int
 	processedTorrentsCount int
 	loading                bool
 }
@@ -63,21 +63,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case StatusMsg:
 		m.status = msg
-		return m, WaitForStatus(m.statusChannel)
-
-	case TorrentsMsg:
-		m.torrents = append(m.torrents, msg.Torrent)
-		m.processedTorrentsCount++
-		if msg.Last {
+		if msg.IsLast {
 			sort.Slice(m.torrents, func(i, j int) bool {
 				return m.torrents[i].Seeders() > m.torrents[j].Seeders()
 			})
 			m.torrentListItems = torrentsToListItems(m.torrents)
 			cmd = m.torrentList.SetItems(m.torrentListItems)
-			m.status = StatusMsg(fmt.Sprintf("Found %d torrents", m.processedTorrentsCount))
+			m.status = StatusMsg{fmt.Sprintf("Found %d torrents", m.processedTorrentsCount), false}
 			m.torrentList.SetSize(m.terminalWidth, getBodyHeight())
 			m.loading = false
 		}
+		return m, WaitForStatus(m.statusChannel)
+
+	case TorrentsMsg:
+		m.torrents = append(m.torrents, msg)
+		m.processedTorrentsCount++
 
 		var cmd tea.Cmd
 		if len(m.torrents) != 0 {
@@ -198,9 +198,9 @@ func InitialModel() Model {
 		query:       input,
 		spinner:     s,
 
-		statusChannel:   make(chan string),
+		statusChannel:   make(chan StatusMsg),
 		torrentsChannel: make(chan TorrentsMsg),
-		errorsChannel:   make(chan error),
+		errorsChannel:   make(chan ErrorsMsg),
 
 		torrentListItems: torrentListItems,
 	}

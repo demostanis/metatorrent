@@ -3,10 +3,12 @@ package provider1337x
 import (
 	"errors"
 	"fmt"
-	"github.com/antchfx/htmlquery"
-	. "github.com/demostanis/metatorrent/internal/messages"
 	"regexp"
 	"strconv"
+	"sync"
+
+	"github.com/antchfx/htmlquery"
+	. "github.com/demostanis/metatorrent/internal/messages"
 )
 
 const Name = "1337x"
@@ -16,13 +18,14 @@ var provider1337xError = func(category, msg string) error {
 	return errors.New(fmt.Sprintf("[%s/%s] ERROR: %s", Name, category, msg))
 }
 
-func searchPage(query string, page int, lastPage int, statusChannel chan string, torrentsChannel chan TorrentsMsg) error {
+func searchPage(query string, page int, lastPage int, statusChannel chan StatusMsg, torrentsChannel chan TorrentsMsg) error {
+	var wg sync.WaitGroup
 	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search/%s/%d/", MainUrl, query, page))
 	if err != nil {
 		return err
 	}
 
-	status(statusChannel, "[%s] Processing page %d...", Name, page)
+	status(statusChannel, false, "[%s] Processing page %d...", Name, page)
 
 	titleElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-1 name\"]/a[2]")
 	linkElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-1 name\"]//a[2]/@href")
@@ -56,32 +59,31 @@ func searchPage(query string, page int, lastPage int, statusChannel chan string,
 			return provider1337xError("parsing", "Torrent size is missing.")
 		}
 
-		last := false
-		if page == lastPage && i == len(titleElements)-1 {
-			last = true
+		myTorrent := Provider1337xTorrent{
+			title:    title,
+			link:     link,
+			seeders:  seeders,
+			leechers: leechers,
+			size:     size,
 		}
-		myTorrent := TorrentsMsg{
-			Provider1337xTorrent{
-				title:    title,
-				link:     link,
-				seeders:  seeders,
-				leechers: leechers,
-				size:     size,
-			},
-			last,
-		}
+		wg.Add(1)
 		go func() {
 			torrentsChannel <- myTorrent
+			wg.Done()
 		}()
 	}
 
-	status(statusChannel, "[%s] Processed page %d...", Name, page)
-
+	wg.Wait()
+	isLast := false
+	if page == lastPage {
+		isLast = true
+	}
+	status(statusChannel, isLast, "[%s] Processed page %d...", Name, page)
 	return nil
 }
 
 // Finds the number of pages of results for `query`, and scrapes all of them using `searchPage`.
-func Search(query string, statusChannel chan string, torrentsChannel chan TorrentsMsg, errorsChannel chan error) {
+func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan TorrentsMsg, errorsChannel chan ErrorsMsg) {
 	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search/%s/1/", MainUrl, query))
 	if err != nil {
 		errorsChannel <- err
@@ -100,7 +102,7 @@ func Search(query string, statusChannel chan string, torrentsChannel chan Torren
 		errorsChannel <- err
 		return
 	}
-	status(statusChannel, "[%s] Found %d pages", Name, lastPage)
+	status(statusChannel, false, "[%s] Found %d pages", Name, lastPage)
 
 	var lastError error
 	scrapedPages := 0
@@ -127,8 +129,9 @@ func Search(query string, statusChannel chan string, torrentsChannel chan Torren
 	}
 }
 
-func status(statusChannel chan string, message string, rest ...any) {
+// The status channel is also used to inform all torrents have been sent, hence `isLast`.
+func status(statusChannel chan StatusMsg, isLast bool, message string, rest ...any) {
 	go func() {
-		statusChannel <- fmt.Sprintf(message, rest...)
+		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), isLast}
 	}()
 }

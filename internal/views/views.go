@@ -40,7 +40,7 @@ var (
 
 func StatusView(status StatusMsg, w int) string {
 	return centerStyle(w).
-		Render(string(status))
+		Render(status.Message)
 }
 
 func TitleView(w int) string {

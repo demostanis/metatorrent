@@ -8,8 +8,8 @@ import (
 	"github.com/demostanis/metatorrent/providers/thepiratebay"
 )
 
-func SearchWithEveryProvider(query string, statusChannel chan string,
-	torrentsChannel chan TorrentsMsg, errorsChannel chan error) {
+func SearchWithEveryProvider(query string, statusChannel chan StatusMsg,
+	torrentsChannel chan TorrentsMsg, errorsChannel chan ErrorsMsg) {
 	provider1337x.Search(query, statusChannel, torrentsChannel, errorsChannel)
 	providerPirateBay.Search(query, statusChannel, torrentsChannel, errorsChannel)
 }
