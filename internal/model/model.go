@@ -70,7 +70,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.torrentListItems = torrentsToListItems(m.torrents)
 			cmd = m.torrentList.SetItems(m.torrentListItems)
 			m.status = StatusMsg{fmt.Sprintf("Found %d torrents", m.processedTorrentsCount), false}
-			m.err = nil
 			m.torrentList.SetSize(m.terminalWidth, getBodyHeight())
 			m.loading = false
 		}
@@ -110,6 +109,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if key == "enter" {
 				m.torrents = make([]Torrent, 0)
 				m.loading = true
+				m.err = nil
 				m.processedTorrentsCount = 0
 				go func() {
 					query := url.QueryEscape(m.query.Value())
