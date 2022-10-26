@@ -73,12 +73,8 @@ func searchPage(query string, page int, lastPage int, statusChannel chan StatusM
 		}()
 	}
 
+	status(statusChannel, "[%s] Processed page %d...", Name, page)
 	wg.Wait()
-	statusFunc := status
-	if page == lastPage {
-		statusFunc = finalStatus
-	}
-	statusFunc(statusChannel, "[%s] Processed page %d...", Name, page)
 	return nil
 }
 
@@ -105,24 +101,22 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	status(statusChannel, "[%s] Found %d pages", Name, lastPage)
 
 	var lastError error
-	scrapedPages := 0
+	var wg sync.WaitGroup
 
 	for i := 1; i <= lastPage; i++ {
+		wg.Add(1)
 		go func(i int) {
 			err := searchPage(query, i, lastPage, statusChannel, torrentsChannel)
+			wg.Done()
 			if err != nil {
 				lastError = err
 				return
 			}
-			scrapedPages++
 		}(i)
 	}
-	for {
-		if lastError != nil || scrapedPages == lastPage {
-			break
-		}
-	}
 
+	wg.Wait()
+	finalStatus(statusChannel, "[%s] Done", Name)
 	if lastError != nil {
 		errorsChannel <- lastError
 		return

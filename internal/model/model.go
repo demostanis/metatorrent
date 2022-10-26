@@ -70,6 +70,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.torrentListItems = torrentsToListItems(m.torrents)
 			cmd = m.torrentList.SetItems(m.torrentListItems)
 			m.status = StatusMsg{fmt.Sprintf("Found %d torrents", m.processedTorrentsCount), false}
+			m.err = nil
 			m.torrentList.SetSize(m.terminalWidth, getBodyHeight())
 			m.loading = false
 		}
