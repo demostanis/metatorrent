@@ -28,7 +28,7 @@ type entry struct {
 
 func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan TorrentsMsg, errorsChannel chan ErrorsMsg) {
 	var wg sync.WaitGroup
-	status(statusChannel, false, "[%s] Processing...", Name)
+	status(statusChannel, "[%s] Processing...", Name)
 
 	resp, err := http.Get(fmt.Sprintf("%s/q.php?q=%s", MainUrl, query))
 	if err != nil {
@@ -84,12 +84,18 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	}
 
 	wg.Wait()
-	status(statusChannel, true, "[%s] Processed...", Name)
+	finalStatus(statusChannel, "[%s] Processed...", Name)
 	return
 }
 
-func status(statusChannel chan StatusMsg, isLast bool, message string, rest ...any) {
+func status(statusChannel chan StatusMsg, message string, rest ...any) {
 	go func() {
-		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), isLast}
+		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), false}
+	}()
+}
+
+func finalStatus(statusChannel chan StatusMsg, message string, rest ...any) {
+	go func() {
+		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), true}
 	}()
 }

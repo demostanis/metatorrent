@@ -25,7 +25,7 @@ func searchPage(query string, page int, lastPage int, statusChannel chan StatusM
 		return err
 	}
 
-	status(statusChannel, false, "[%s] Processing page %d...", Name, page)
+	status(statusChannel, "[%s] Processing page %d...", Name, page)
 
 	titleElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-1 name\"]/a[2]")
 	linkElements, err := htmlquery.QueryAll(doc, "//td[@class=\"coll-1 name\"]//a[2]/@href")
@@ -74,11 +74,11 @@ func searchPage(query string, page int, lastPage int, statusChannel chan StatusM
 	}
 
 	wg.Wait()
-	isLast := false
+	statusFunc := status
 	if page == lastPage {
-		isLast = true
+		statusFunc = finalStatus
 	}
-	status(statusChannel, isLast, "[%s] Processed page %d...", Name, page)
+	statusFunc(statusChannel, "[%s] Processed page %d...", Name, page)
 	return nil
 }
 
@@ -102,7 +102,7 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 		errorsChannel <- err
 		return
 	}
-	status(statusChannel, false, "[%s] Found %d pages", Name, lastPage)
+	status(statusChannel, "[%s] Found %d pages", Name, lastPage)
 
 	var lastError error
 	scrapedPages := 0
@@ -129,9 +129,14 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	}
 }
 
-// The status channel is also used to inform all torrents have been sent, hence `isLast`.
-func status(statusChannel chan StatusMsg, isLast bool, message string, rest ...any) {
+func status(statusChannel chan StatusMsg, message string, rest ...any) {
 	go func() {
-		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), isLast}
+		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), false}
+	}()
+}
+
+func finalStatus(statusChannel chan StatusMsg, message string, rest ...any) {
+	go func() {
+		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), true}
 	}()
 }
