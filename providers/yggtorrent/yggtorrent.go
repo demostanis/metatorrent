@@ -29,7 +29,7 @@ func searchPage(query string, page int, statusChannel chan StatusMsg, torrentsCh
 	SendStatus(statusChannel, "[%s] Processing page %d...", Name, page)
 
 	titleElements, _ := htmlquery.QueryAll(doc, "//td//a/@title")
-	linkElements, _ := htmlquery.QueryAll(doc, "//td/a/@href")
+	linkElements, _ := htmlquery.QueryAll(doc, "//td//a/@href")
 	sizeElements, _ := htmlquery.QueryAll(doc, "//tr/td[2]")
 	seedersCountElements, _ := htmlquery.QueryAll(doc, "//tr/td[3]/span")
 	leechersCountElements, _ := htmlquery.QueryAll(doc, "//tr/td[4]")
