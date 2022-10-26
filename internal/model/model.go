@@ -28,7 +28,7 @@ type Model struct {
 	spinner          spinner.Model
 	torrentListItems []list.Item
 
-	err            error
+	errors         []string
 	terminalWidth  int
 	terminalHeight int
 
@@ -52,7 +52,7 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	getBodyHeight := func() int {
-		return GetBodyHeight(TitleView(m.terminalWidth), ErrorView(m.err, m.terminalWidth), m.query.View(), m.terminalHeight)
+		return GetBodyHeight(TitleView(m.terminalWidth), ErrorView(m.errors, m.terminalWidth), m.query.View(), m.terminalHeight)
 	}
 
 	var (
@@ -89,7 +89,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ErrorsMsg:
 		m.loading = false
-		m.err = msg
+		m.errors = append(m.errors, msg.Error())
 		m.torrentList.SetSize(m.terminalWidth, getBodyHeight())
 		return m, WaitForErrors(m.errorsChannel)
 
@@ -109,7 +109,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if key == "enter" {
 				m.torrents = make([]Torrent, 0)
 				m.loading = true
-				m.err = nil
+				m.errors = make([]string, 0)
 				m.processedTorrentsCount = 0
 				go func() {
 					query := url.QueryEscape(m.query.Value())
@@ -119,7 +119,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				myTorrent := m.torrents[m.torrentList.Index()]
 				magnet, err := myTorrent.Magnet()
 				if err != nil {
-					m.err = err
+					m.errors = append(m.errors, err.Error())
 				}
 
 				torrentProgram := os.Getenv("TORRENT_PROGRAM")
@@ -129,7 +129,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				command := exec.Command(torrentProgram, magnet)
 				err = command.Start()
 				if err != nil {
-					m.err = err
+					m.errors = append(m.errors, err.Error())
 				}
 			}
 		}
@@ -158,8 +158,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	return fmt.Sprintf("%s%s\n%s\n%s\n%s",
-		TitleView(m.terminalWidth), StatusView(m.status, m.terminalWidth), ErrorView(m.err, m.terminalWidth),
-		BodyView(m.loading, m.err, m.query, m.spinner, m.torrentList, m.terminalWidth, m.terminalHeight), m.query.View())
+		TitleView(m.terminalWidth), StatusView(m.status, m.terminalWidth), ErrorView(m.errors, m.terminalWidth),
+		BodyView(m.loading, m.errors, m.query, m.spinner, m.torrentList, m.terminalWidth, m.terminalHeight), m.query.View())
 }
 
 func makeTorrentList(torrents []list.Item) list.Model {

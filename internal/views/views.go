@@ -53,18 +53,18 @@ func TitleView(w int) string {
 	return s
 }
 
-func ErrorView(err error, w int) string {
-	if err != nil {
+func ErrorView(errors []string, w int) string {
+	if len(errors) != 0 {
 		return errorStyle(w).
-			Render(err.Error())
+			Render(strings.Join(errors, "\n"))
 	}
 	return ""
 }
 
-func WelcomeScreenView(err error, query textinput.Model, w int, h int) string {
+func WelcomeScreenView(errors []string, query textinput.Model, w int, h int) string {
 	return centerStyle(w).
 		Height(GetBodyHeight(
-			TitleView(w), ErrorView(err, w),
+			TitleView(w), ErrorView(errors, w),
 			query.View(), h,
 		)).
 		// TODO: Add more colors
@@ -74,11 +74,11 @@ download a torrent by pressing space and make a new search by using C-f.`)
 }
 
 // Too bad we can't pass a Model here (due to cyclic imports)
-func BodyView(loading bool, err error, query textinput.Model,
+func BodyView(loading bool, errors []string, query textinput.Model,
 	spinner spinner.Model, torrentList list.Model, w int, h int) string {
 	body := centerStyle(w).
 		Height(GetBodyHeight(
-			TitleView(w), ErrorView(err, w),
+			TitleView(w), ErrorView(errors, w),
 			query.View(), h,
 		)).
 		Render(spinner.View())
@@ -87,7 +87,7 @@ func BodyView(loading bool, err error, query textinput.Model,
 		if len(torrentList.Items()) != 0 {
 			body = torrentList.View()
 		} else {
-			body = WelcomeScreenView(err, query, w, h)
+			body = WelcomeScreenView(errors, query, w, h)
 		}
 	}
 

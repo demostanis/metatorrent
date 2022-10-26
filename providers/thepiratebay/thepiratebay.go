@@ -47,10 +47,12 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 		errorsChannel <- err
 	}
 
+	torrentsCount := 0
 	for _, entry := range data {
 		if entry.Name == "No results returned" {
 			continue
 		}
+		torrentsCount++
 
 		seeders, err := strconv.Atoi(entry.Seeders)
 		if err != nil {
@@ -84,6 +86,9 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	}
 
 	wg.Wait()
+	if torrentsCount == 0 {
+		errorsChannel <- providerPirateBayError("404", "No results found.")
+	}
 	finalStatus(statusChannel, "[%s] Done", Name)
 	return
 }
