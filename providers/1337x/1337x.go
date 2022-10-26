@@ -88,7 +88,7 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 
 	lastPageElem := htmlquery.FindOne(doc, "//div[@class=\"pagination\"]//li[last()]//@href")
 	if lastPageElem == nil {
-		errorsChannel <- provider1337xError("parsing", "Max page number is missing.")
+		errorsChannel <- provider1337xError("404", "No results found.")
 		return
 	}
 	href := htmlquery.SelectAttr(lastPageElem, "href")

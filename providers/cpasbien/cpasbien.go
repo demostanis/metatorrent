@@ -82,7 +82,7 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 
 	pages := htmlquery.Find(doc, "//ul[@class=\"pagination\"]//a")
 	if len(pages) == 0 {
-		errorsChannel <- providerCpasbienError("parsing", "Number of torrents missing.")
+		errorsChannel <- providerCpasbienError("404", "No results found.")
 		return
 	}
 	indexes := make([]int, 0)
