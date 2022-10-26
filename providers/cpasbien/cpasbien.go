@@ -14,7 +14,7 @@ import (
 const Name = "cpasbien"
 const MainUrl = "https://www.cpasbien.ch"
 
-var providerCpasienError = func(category, msg string) error {
+var providerCpasbienError = func(category, msg string) error {
 	return errors.New(fmt.Sprintf("[%s/%s] ERROR: %s", Name, category, msg))
 }
 
@@ -37,7 +37,7 @@ func searchPage(query string, beginning int, end int, statusChannel chan StatusM
 		len(seedersCountElements) != len(titleElements) ||
 		len(leechersCountElements) != len(titleElements) ||
 		len(sizeElements) != len(titleElements) {
-		return providerCpasienError("parsing", "Torrent entries are malformed.")
+		return providerCpasbienError("parsing", "Torrent entries are malformed.")
 	}
 
 	for i, title := range titleElements {
@@ -46,11 +46,11 @@ func searchPage(query string, beginning int, end int, statusChannel chan StatusM
 
 		seeders, err := strconv.Atoi(htmlquery.InnerText(seedersCountElements[i]))
 		if err != nil {
-			return providerCpasienError("parsing", "Expected seeders to be a number.")
+			return providerCpasbienError("parsing", "Expected seeders to be a number.")
 		}
 		leechers, err := strconv.Atoi(htmlquery.InnerText(leechersCountElements[i]))
 		if err != nil {
-			return providerCpasienError("parsing", "Expected leechers to be a number.")
+			return providerCpasbienError("parsing", "Expected leechers to be a number.")
 		}
 		size := htmlquery.InnerText(sizeElements[i])
 
@@ -82,7 +82,7 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 
 	pages := htmlquery.Find(doc, "//ul[@class=\"pagination\"]//a")
 	if len(pages) == 0 {
-		errorsChannel <- providerCpasienError("parsing", "Number of torrents missing.")
+		errorsChannel <- providerCpasbienError("parsing", "Number of torrents missing.")
 		return
 	}
 	indexes := make([]int, 0)

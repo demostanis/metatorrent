@@ -39,7 +39,7 @@ func (t ProviderCpasbienTorrent) Magnet() (string, error) {
 	}
 	magnetLink := htmlquery.FindOne(doc, "//div[@class=\"btn-download\"]/a/@href")
 	if magnetLink == nil {
-		return "", providerCpasienError("parsing", "Download link is missing.")
+		return "", providerCpasbienError("parsing", "Download link is missing.")
 	}
 	href := htmlquery.SelectAttr(magnetLink, "href")
 	return href, nil
