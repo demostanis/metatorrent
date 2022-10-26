@@ -22,7 +22,7 @@ To specify a custom Torrent client, set the `TORRENT_PROGRAM` environment variab
 
 When filtering the results by pressing `/`, `Filter:` might appear twice.
 
-This is most likely a Bubbletea bug.
+This is most likely a Bubbletea bug. (https://github.com/charmbracelet/bubbletea/issues/580)
 
 ### Donations
 
