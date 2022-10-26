@@ -18,7 +18,7 @@ var providerCpasbienError = func(category, msg string) error {
 	return errors.New(fmt.Sprintf("[%s/%s] ERROR: %s", Name, category, msg))
 }
 
-func searchPage(query string, beginning int, end int, statusChannel chan StatusMsg, torrentsChannel chan TorrentsMsg) error {
+func searchPage(query string, beginning int, statusChannel chan StatusMsg, torrentsChannel chan TorrentsMsg) error {
 	var wg sync.WaitGroup
 	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/recherche/%s/%d", MainUrl, query, beginning))
 	if err != nil {
@@ -93,7 +93,6 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 			indexes = append(indexes, beginning)
 		}
 	}
-	lastIndex := indexes[len(indexes)-1]
 	pageCount := len(indexes)
 
 	status(statusChannel, "[%s] Found %d pages", Name, pageCount)
@@ -104,7 +103,7 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	for i := 0; i < pageCount; i++ {
 		wg.Add(1)
 		go func(i int) {
-			err := searchPage(query, indexes[i], lastIndex, statusChannel, torrentsChannel)
+			err := searchPage(query, indexes[i], statusChannel, torrentsChannel)
 			wg.Done()
 			if err != nil {
 				lastError = err
