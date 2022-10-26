@@ -120,6 +120,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				magnet, err := myTorrent.Magnet()
 				if err != nil {
 					m.errors = append(m.errors, err.Error())
+					return m, nil
 				}
 
 				torrentProgram := os.Getenv("TORRENT_PROGRAM")
