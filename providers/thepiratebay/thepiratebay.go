@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	. "github.com/demostanis/metatorrent/internal/events"
 	. "github.com/demostanis/metatorrent/internal/messages"
 	"io"
 	"net/http"
@@ -28,7 +29,7 @@ type entry struct {
 
 func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan TorrentsMsg, errorsChannel chan ErrorsMsg) {
 	var wg sync.WaitGroup
-	status(statusChannel, "[%s] Fetching The Pirate Bay's API...", Name)
+	SendStatus(statusChannel, "[%s] Fetching The Pirate Bay's API...", Name)
 
 	resp, err := http.Get(fmt.Sprintf("%s/q.php?q=%s", MainUrl, query))
 	if err != nil {
@@ -89,18 +90,6 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	if torrentsCount == 0 {
 		errorsChannel <- providerPirateBayError("404", "No results found.")
 	}
-	finalStatus(statusChannel, "[%s] Done", Name)
+	SendFinalStatus(statusChannel, "[%s] Done", Name)
 	return
-}
-
-func status(statusChannel chan StatusMsg, message string, rest ...any) {
-	go func() {
-		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), false}
-	}()
-}
-
-func finalStatus(statusChannel chan StatusMsg, message string, rest ...any) {
-	go func() {
-		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), true}
-	}()
 }

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/antchfx/htmlquery"
+	. "github.com/demostanis/metatorrent/internal/events"
 	. "github.com/demostanis/metatorrent/internal/messages"
 )
 
@@ -25,7 +26,7 @@ func searchPage(query string, beginning int, statusChannel chan StatusMsg, torre
 		return err
 	}
 
-	status(statusChannel, "[%s] Processing %dth torrents...", Name, beginning)
+	SendStatus(statusChannel, "[%s] Processing %dth torrents...", Name, beginning)
 
 	titleElements, _ := htmlquery.QueryAll(doc, "//td/a[@class=\"titre\"]/text()")
 	linkElements, _ := htmlquery.QueryAll(doc, "//td/a[@class=\"titre\"]/@href")
@@ -68,7 +69,7 @@ func searchPage(query string, beginning int, statusChannel chan StatusMsg, torre
 		}()
 	}
 
-	status(statusChannel, "[%s] Processed %d torrents...", Name, len(titleElements))
+	SendStatus(statusChannel, "[%s] Processed %d torrents...", Name, len(titleElements))
 	wg.Wait()
 	return nil
 }
@@ -95,7 +96,7 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	}
 	pageCount := len(indexes)
 
-	status(statusChannel, "[%s] Found %d pages", Name, pageCount)
+	SendStatus(statusChannel, "[%s] Found %d pages", Name, pageCount)
 
 	var lastError error
 	var wg sync.WaitGroup
@@ -113,21 +114,9 @@ func Search(query string, statusChannel chan StatusMsg, torrentsChannel chan Tor
 	}
 
 	wg.Wait()
-	finalStatus(statusChannel, "[%s] Done", Name)
+	SendFinalStatus(statusChannel, "[%s] Done", Name)
 	if lastError != nil {
 		errorsChannel <- lastError
 		return
 	}
-}
-
-func status(statusChannel chan StatusMsg, message string, rest ...any) {
-	go func() {
-		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), false}
-	}()
-}
-
-func finalStatus(statusChannel chan StatusMsg, message string, rest ...any) {
-	go func() {
-		statusChannel <- StatusMsg{fmt.Sprintf(message, rest...), true}
-	}()
 }
