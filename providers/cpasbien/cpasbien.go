@@ -23,7 +23,7 @@ func searchPage(query string, beginning int, statusChannel chan StatusMsg, torre
 	var wg sync.WaitGroup
 	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/recherche/%s/%d", MainUrl, query, beginning))
 	if err != nil {
-		return err
+		return providerCpasbienError("other", err.Error())
 	}
 
 	SendStatus(statusChannel, "[%s] Processing %dth torrents...", Name, beginning)

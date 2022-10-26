@@ -23,7 +23,7 @@ func searchPage(query string, page int, lastPage int, statusChannel chan StatusM
 	var wg sync.WaitGroup
 	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search/%s/%d/", MainUrl, query, page))
 	if err != nil {
-		return err
+		return provider1337xError("other", err.Error())
 	}
 
 	SendStatus(statusChannel, "[%s] Processing page %d...", Name, page)

@@ -23,7 +23,7 @@ func searchPage(query string, page int, statusChannel chan StatusMsg, torrentsCh
 	var wg sync.WaitGroup
 	doc, err := htmlquery.LoadURL(fmt.Sprintf("%s/search_torrent/%s/page-%d", MainUrl, query, page))
 	if err != nil {
-		return err
+		return providerYggTorrentError("other", err.Error())
 	}
 
 	SendStatus(statusChannel, "[%s] Processing page %d...", Name, page)
