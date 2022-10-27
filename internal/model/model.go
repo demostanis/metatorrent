@@ -116,7 +116,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					providers.SearchWithEveryProvider(query, m.statusChannel, m.torrentsChannel, m.errorsChannel)
 				}()
 			} else if !m.query.Focused() && key == " " {
-				myTorrent := m.torrents[m.torrentList.Index()]
+				myTorrent := m.torrentList.SelectedItem().(Torrent)
 				magnet, err := myTorrent.Magnet()
 				if err != nil {
 					m.errors = append(m.errors, err.Error())
