@@ -8,7 +8,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	. "github.com/demostanis/metatorrent/internal/logo"
-	. "github.com/demostanis/metatorrent/internal/messages"
 	. "github.com/demostanis/metatorrent/internal/torrent"
 	"github.com/mattn/go-runewidth"
 	"io"
@@ -38,9 +37,9 @@ var (
 			Bold(true)
 )
 
-func StatusView(status StatusMsg, w int) string {
+func StatusView(status string, w int) string {
 	return centerStyle(w).
-		Render(status.Message)
+		Render(status)
 }
 
 func TitleView(w int) string {

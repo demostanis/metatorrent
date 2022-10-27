@@ -21,14 +21,14 @@ import (
 
 type Model struct {
 	torrents []Torrent
-	status   StatusMsg
+	errors   []string
+	status   string
 
 	query            textinput.Model
 	torrentList      list.Model
 	spinner          spinner.Model
 	torrentListItems []list.Item
 
-	errors         []string
 	terminalWidth  int
 	terminalHeight int
 
@@ -62,14 +62,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case StatusMsg:
-		m.status = msg
+		m.status = msg.Message
 		if msg.IsLast {
 			sort.Slice(m.torrents, func(i, j int) bool {
 				return m.torrents[i].Seeders() > m.torrents[j].Seeders()
 			})
 			m.torrentListItems = torrentsToListItems(m.torrents)
 			cmd = m.torrentList.SetItems(m.torrentListItems)
-			m.status = StatusMsg{fmt.Sprintf("Found %d torrents", m.processedTorrentsCount), false}
+			m.status = fmt.Sprintf("Found %d torrents", m.processedTorrentsCount)
 			m.torrentList.SetSize(m.terminalWidth, getBodyHeight())
 			m.loading = false
 		}
