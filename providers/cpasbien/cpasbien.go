@@ -3,6 +3,7 @@ package providerCpasbien
 import (
 	"errors"
 	"fmt"
+	"math"
 	"regexp"
 	"strconv"
 	"sync"
@@ -26,7 +27,7 @@ func searchPage(query string, beginning int, statusChannel chan StatusMsg, torre
 		return providerCpasbienError("other", err.Error())
 	}
 
-	SendStatus(statusChannel, "[%s] Processing %dth torrents...", Name, beginning)
+	SendStatus(statusChannel, "[%s] Processing page %d...", Name, int(math.Floor(float64(beginning)/50)+1))
 
 	titleElements, _ := htmlquery.QueryAll(doc, "//td/a[@class=\"titre\"]/text()")
 	linkElements, _ := htmlquery.QueryAll(doc, "//td/a[@class=\"titre\"]/@href")
