@@ -84,7 +84,8 @@ func BodyView(loading bool, errors []string, query textinput.Model,
 
 	if !loading {
 		if len(torrentList.Items()) != 0 {
-			body = torrentList.View()
+			// Make sure torrentList does not exceed the set height and cause screen overflow
+			body = lipgloss.NewStyle().MaxHeight(torrentList.Height()).Render(torrentList.View())
 		} else {
 			body = WelcomeScreenView(errors, query, w, h)
 		}
