@@ -95,6 +95,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		key := msg.String()
+		// I wonder what quits the application...
+		if key == "q" && m.query.Focused() {
+			m.query, cmd = m.query.Update(msg)
+			return m, cmd
+		}
 		if key == "ctrl+c" {
 			return m, tea.Quit
 		}
